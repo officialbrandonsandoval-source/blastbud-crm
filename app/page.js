@@ -705,7 +705,7 @@ Always end with {"action": "done", "summary": "..."}.`;
             <div style={{ background: "linear-gradient(135deg, #052e16, #0a4a20)", padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #16a34a44" }}>
               <div>
                 <div style={{ fontSize: 12, color: "#4ade80", fontWeight: 700, letterSpacing: "0.05em" }}>🌿 BLASTBUD AGENT</div>
-                <div style={{ fontSize: 9, color: "#15803d" }}>qwen2.5:72b · server proxy</div>
+                <div style={{ fontSize: 9, color: "#15803d" }}>llama-3.3-70b · groq</div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
                 <button onClick={() => setAgentLog([])} style={{ background: "none", border: "1px solid #15803d", borderRadius: 4, padding: "2px 8px", color: "#4ade80", fontSize: 10, cursor: "pointer" }}>Clear</button>
