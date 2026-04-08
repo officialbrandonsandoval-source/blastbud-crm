@@ -39,6 +39,10 @@ export default function BlastBudCRM() {
   const [notesText, setNotesText] = useState("");
   const [aptDateText, setAptDateText] = useState("");
   const [showStats, setShowStats] = useState(false);
+  const [agentView, setAgentView] = useState(false);
+  const [agentTask, setAgentTask] = useState("");
+  const [agentLog, setAgentLog] = useState([]);
+  const [agentRunning, setAgentRunning] = useState(false);
 
   useEffect(() => {
     try {
@@ -141,6 +145,130 @@ Be direct, specific, no fluff. Sound like a seasoned sales pro.`;
     setAiLoading(false);
   };
 
+  const runAgent = async () => {
+    if (!agentTask.trim() || agentRunning) return;
+    setAgentRunning(true);
+    const task = agentTask.trim();
+    setAgentTask("");
+    setAgentLog(prev => [...prev, { role: "user", text: task }]);
+
+    const systemPrompt = `You are a sales CRM agent for BlastBud, a cannabis marketing platform. You have access to a contact list of ${contacts.length} cannabis businesses.
+
+You can perform these ACTIONS by outputting JSON commands:
+- {"action": "search", "query": "text"} - search contacts by name/company/city/state
+- {"action": "update_status", "company": "name", "status": "new|contacted|interested|booked|closed|dead"} - update a contact status
+- {"action": "add_note", "company": "name", "note": "text"} - add a call note to a contact
+- {"action": "set_apt", "company": "name", "date": "date string"} - set appointment date
+- {"action": "list_by_status", "status": "status_name"} - list contacts by status
+- {"action": "list_by_state", "state": "ST"} - list contacts by state
+- {"action": "stats"} - show pipeline stats
+- {"action": "done", "summary": "what you did"} - finish the task
+
+Current pipeline stats:
+${Object.entries(stats).map(([k,v]) => k + ': ' + v).join(', ')}
+
+Contact data sample (first 5):
+${contacts.slice(0,5).map(c => c.company + ' (' + c.state + ') - ' + c.status).join('\n')}
+
+Think step by step. For each step output ONE JSON action, then I will give you the result and you continue until done.
+Always end with {"action": "done", "summary": "..."}.`;
+
+    const messages = [{ role: "user", content: "Task: " + task }];
+    let iterations = 0;
+    const maxIterations = 10;
+
+    const ollama = async (msgs) => {
+      const res = await fetch("http://localhost:11434/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "qwen2.5:72b",
+          messages: [{ role: "system", content: systemPrompt }, ...msgs],
+          stream: false
+        })
+      });
+      const d = await res.json();
+      return d.message?.content || "";
+    };
+
+    const executeAction = (cmd) => {
+      try {
+        const action = JSON.parse(cmd.match(/\{[^}]+\}/s)?.[0] || cmd);
+        if (action.action === "search") {
+          const q = action.query.toLowerCase();
+          const results = contacts.filter(c =>
+            c.company.toLowerCase().includes(q) ||
+            c.city?.toLowerCase().includes(q) ||
+            c.state?.toLowerCase().includes(q) ||
+            c.firstName?.toLowerCase().includes(q) ||
+            c.businessType?.toLowerCase().includes(q)
+          ).slice(0, 10);
+          return "Found " + results.length + " contacts: " + results.map(c => c.company + " (" + c.state + ", " + c.status + ")").join("; ");
+        }
+        if (action.action === "update_status") {
+          const c = contacts.find(x => x.company.toLowerCase().includes(action.company.toLowerCase()));
+          if (c) { updateStatus(c.id, action.status); return "Updated " + c.company + " to " + action.status; }
+          return "Contact not found: " + action.company;
+        }
+        if (action.action === "add_note") {
+          const c = contacts.find(x => x.company.toLowerCase().includes(action.company.toLowerCase()));
+          if (c) {
+            const updated = contacts.map(x => x.id === c.id ? { ...x, callNotes: (x.callNotes ? x.callNotes + "\n" : "") + action.note } : x);
+            saveContacts(updated);
+            return "Note added to " + c.company;
+          }
+          return "Contact not found: " + action.company;
+        }
+        if (action.action === "set_apt") {
+          const c = contacts.find(x => x.company.toLowerCase().includes(action.company.toLowerCase()));
+          if (c) {
+            const updated = contacts.map(x => x.id === c.id ? { ...x, aptDate: action.date, status: "booked" } : x);
+            saveContacts(updated);
+            return "Appointment set for " + c.company + ": " + action.date;
+          }
+          return "Contact not found: " + action.company;
+        }
+        if (action.action === "list_by_status") {
+          const results = contacts.filter(c => c.status === action.status).slice(0, 15);
+          return results.length + " contacts with status '" + action.status + "': " + results.map(c => c.company + " (" + c.state + ")").join("; ");
+        }
+        if (action.action === "list_by_state") {
+          const results = contacts.filter(c => c.state === action.state).slice(0, 15);
+          return results.length + " contacts in " + action.state + ": " + results.map(c => c.company + " (" + c.status + ")").join("; ");
+        }
+        if (action.action === "stats") {
+          return "Pipeline: " + Object.entries(stats).map(([k,v]) => k + "=" + v).join(", ");
+        }
+        if (action.action === "done") {
+          return "DONE: " + action.summary;
+        }
+        return "Unknown action: " + action.action;
+      } catch(e) {
+        return "Parse error: " + e.message;
+      }
+    };
+
+    try {
+      while (iterations < maxIterations) {
+        iterations++;
+        const response = await ollama(messages);
+        messages.push({ role: "assistant", content: response });
+
+        const isDone = response.includes('"action": "done"') || response.includes("action: done");
+        const actionResult = executeAction(response);
+
+        setAgentLog(prev => [...prev, { role: "agent", text: response, result: actionResult }]);
+
+        if (isDone || actionResult.startsWith("DONE:")) break;
+
+        messages.push({ role: "user", content: "Result: " + actionResult + "\nContinue with next action or finish with done." });
+      }
+    } catch(e) {
+      setAgentLog(prev => [...prev, { role: "error", text: "Error: " + e.message }]);
+    }
+    setAgentRunning(false);
+  };
+
   const contactName = (c) => c.firstName ? (c.firstName + " " + c.lastName).trim() : null;
 
   if (!hydrated) {
@@ -174,6 +302,7 @@ Be direct, specific, no fluff. Sound like a seasoned sales pro.`;
           {states.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         <button onClick={() => setShowStats(!showStats)} style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", color: "#94a3b8", fontSize: 12, cursor: "pointer" }}>📊</button>
+        <button onClick={() => setAgentView(!agentView)} style={{ background: agentView ? "#7c3aed" : "#1e293b", border: "1px solid " + (agentView ? "#7c3aed" : "#334155"), borderRadius: 6, padding: "6px 12px", color: agentView ? "#fff" : "#94a3b8", fontSize: 12, cursor: "pointer", fontWeight: agentView ? 700 : 400 }}>🤖 Agent</button>
         <span style={{ fontSize: 11, color: "#64748b" }}>{filtered.length} shown</span>
         {view === "detail" && <button onClick={() => setView("list")} style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", color: "#94a3b8", fontSize: 12, cursor: "pointer" }}>← List</button>}
       </div>
@@ -194,6 +323,35 @@ Be direct, specific, no fluff. Sound like a seasoned sales pro.`;
         </div>
       )}
 
+      {agentView && (
+        <div style={{ background: "#0a0014", borderBottom: "1px solid #4c1d95", padding: 16, maxHeight: 400, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ fontSize: 11, color: "#a78bfa", fontWeight: 700, letterSpacing: "0.05em" }}>🤖 CRM AGENT — powered by qwen2.5:72b</div>
+          <div style={{ flex: 1, overflowY: "auto", maxHeight: 280, display: "flex", flexDirection: "column", gap: 8 }}>
+            {agentLog.length === 0 && <div style={{ color: "#4c1d95", fontSize: 12 }}>Give the agent a task. It can search contacts, update statuses, book appointments, add notes, and more.</div>}
+            {agentLog.map((msg, i) => (
+              <div key={i} style={{ background: msg.role === "user" ? "#1e1b4b" : msg.role === "error" ? "#450a0a" : "#0f0f1a", border: "1px solid " + (msg.role === "user" ? "#4338ca" : msg.role === "error" ? "#7f1d1d" : "#1e293b"), borderRadius: 8, padding: "8px 12px" }}>
+                <div style={{ fontSize: 10, color: msg.role === "user" ? "#818cf8" : msg.role === "error" ? "#f87171" : "#6b7280", marginBottom: 4, fontWeight: 700 }}>{msg.role === "user" ? "YOU" : msg.role === "error" ? "ERROR" : "AGENT"}</div>
+                <div style={{ fontSize: 12, color: msg.role === "user" ? "#c7d2fe" : "#e2e8f0", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{msg.text}</div>
+                {msg.result && <div style={{ fontSize: 11, color: "#10b981", marginTop: 6, background: "#052e16", borderRadius: 4, padding: "4px 8px" }}>→ {msg.result}</div>}
+              </div>
+            ))}
+            {agentRunning && <div style={{ color: "#a78bfa", fontSize: 12, animation: "pulse 1s infinite" }}>⟳ Agent thinking...</div>}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              value={agentTask}
+              onChange={e => setAgentTask(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && runAgent()}
+              placeholder='e.g. "Find all dispensaries in NY and mark them as contacted" or "Book an apt with Bayside Cannabis for April 15"'
+              style={{ flex: 1, background: "#1e1b4b", border: "1px solid #4c1d95", borderRadius: 8, padding: "8px 12px", color: "#e2e8f0", fontSize: 13, outline: "none", fontFamily: "monospace" }}
+            />
+            <button onClick={runAgent} disabled={agentRunning || !agentTask.trim()} style={{ background: agentRunning ? "#1e293b" : "#7c3aed", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: agentRunning ? "default" : "pointer", fontWeight: 700 }}>
+              {agentRunning ? "..." : "Run"}
+            </button>
+            <button onClick={() => setAgentLog([])} style={{ background: "#1e293b", color: "#64748b", border: "1px solid #334155", borderRadius: 8, padding: "8px 12px", fontSize: 12, cursor: "pointer" }}>Clear</button>
+          </div>
+        </div>
+      )}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         {/* LIST */}
         {view !== "detail" && (
