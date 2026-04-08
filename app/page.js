@@ -179,27 +179,7 @@ export default function BlastBudCRM() {
             lastContacted: r.last_contacted || '',
             aptDate: r.apt_date || '',
           }));
-          // If DB has fewer than 250, seed first
-          if (data.length < 250) {
-            await fetch('/api/contacts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'seed' }) });
-            // Reload after seed
-            const res2 = await fetch('/api/contacts');
-            const data2 = await res2.json();
-            if (Array.isArray(data2) && data2.length > 0) {
-              const mapped2 = data2.map(r => ({
-                id: r.id, company: r.company || '', parentCompany: r.parent_company || '',
-                firstName: r.first_name || '', lastName: r.last_name || '', title: r.title || '',
-                phone: r.phone || '', email: r.email || '', website: r.website || '', city: r.city || '', state: r.state || '',
-                description: r.description || '', notes: r.notes || '', revenue: r.revenue || '',
-                employees: r.employees || '', facebook: r.facebook || '', linkedin: r.linkedin || '',
-                businessType: r.business_type || '', status: r.status || 'new',
-                callNotes: r.call_notes || '', lastContacted: r.last_contacted || '', aptDate: r.apt_date || '',
-              }));
-              setContacts(mapped2);
-            }
-          } else {
-            setContacts(mapped);
-          }
+          // Data loaded from DB — no re-seeding, your changes persist
           setDbReady(true);
         } else {
           // Seed DB from scratch
