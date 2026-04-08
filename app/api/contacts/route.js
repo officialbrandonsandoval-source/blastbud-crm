@@ -19,7 +19,7 @@ async function sb(path, opts = {}) {
 
 export async function GET() {
   try {
-    const data = await sb('contacts?select=id,company,first_name,last_name,title,phone,website,city,state,description,notes,revenue,employees,facebook,linkedin,business_type,status,call_notes,last_contacted,apt_date&order=id.asc&limit=500');
+    const data = await sb('contacts?select=id,company,first_name,last_name,title,phone,email,website,city,state,description,notes,revenue,employees,facebook,linkedin,business_type,status,call_notes,last_contacted,apt_date&order=id.asc&limit=500');
     return Response.json(data);
   } catch (e) {
     return Response.json({ error: e.message }, { status: 500 });
@@ -37,7 +37,7 @@ export async function POST(request) {
       const updates = { updated_at: new Date().toISOString() };
       const allowedFields = [
         'company', 'parent_company', 'first_name', 'last_name', 'title',
-        'phone', 'website', 'city', 'state', 'description', 'notes',
+        'phone', 'email', 'website', 'city', 'state', 'description', 'notes',
         'revenue', 'employees', 'facebook', 'linkedin', 'business_type',
         'status', 'call_notes', 'last_contacted', 'apt_date'
       ];
@@ -66,6 +66,7 @@ export async function POST(request) {
         last_name: c.lastName || '',
         title: c.title || '',
         phone: c.phone || '',
+        email: c.email || '',
         website: c.website || '',
         city: c.city || '',
         state: c.state || '',

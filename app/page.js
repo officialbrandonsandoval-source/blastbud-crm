@@ -60,7 +60,12 @@ function EditContactForm({ contact, onSave, onCancel }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div style={groupStyle}><div style={labelStyle}>Phone</div><input value={form.phone} onChange={e => set("phone", e.target.value)} style={fieldStyle} /></div>
+        <div style={groupStyle}><div style={labelStyle}>Email</div><input value={form.email} onChange={e => set("email", e.target.value)} style={fieldStyle} type="email" placeholder="name@company.com" /></div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <div style={groupStyle}><div style={labelStyle}>Website</div><input value={form.website} onChange={e => set("website", e.target.value)} style={fieldStyle} /></div>
+        <div style={{ flex: 1 }}></div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
@@ -158,6 +163,7 @@ export default function BlastBudCRM() {
             lastName: r.last_name || '',
             title: r.title || '',
             phone: r.phone || '',
+            email: r.email || '',
             website: r.website || '',
             city: r.city || '',
             state: r.state || '',
@@ -183,7 +189,7 @@ export default function BlastBudCRM() {
               const mapped2 = data2.map(r => ({
                 id: r.id, company: r.company || '', parentCompany: r.parent_company || '',
                 firstName: r.first_name || '', lastName: r.last_name || '', title: r.title || '',
-                phone: r.phone || '', website: r.website || '', city: r.city || '', state: r.state || '',
+                phone: r.phone || '', email: r.email || '', website: r.website || '', city: r.city || '', state: r.state || '',
                 description: r.description || '', notes: r.notes || '', revenue: r.revenue || '',
                 employees: r.employees || '', facebook: r.facebook || '', linkedin: r.linkedin || '',
                 businessType: r.business_type || '', status: r.status || 'new',
@@ -291,7 +297,7 @@ export default function BlastBudCRM() {
     const dbFields = {
       company: updated.company, parent_company: updated.parentCompany,
       first_name: updated.firstName, last_name: updated.lastName,
-      title: updated.title, phone: updated.phone, website: updated.website,
+      title: updated.title, phone: updated.phone, email: updated.email, website: updated.website,
       city: updated.city, state: updated.state, description: updated.description,
       notes: updated.notes, revenue: updated.revenue, employees: updated.employees,
       facebook: updated.facebook, linkedin: updated.linkedin,
@@ -563,6 +569,7 @@ Always end with {"action": "done", "summary": "..."}.`;
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
               {selected.phone && <a href={"tel:" + selected.phone} style={{ background: "#10b981", color: "#fff", borderRadius: 8, padding: "7px 14px", textDecoration: "none", fontSize: 13, fontWeight: 600 }}>📞 Call Now</a>}
+              {selected.email && <a href={"mailto:" + selected.email} style={{ background: "#1e293b", color: "#60a5fa", borderRadius: 8, padding: "7px 14px", textDecoration: "none", fontSize: 12 }}>✉️ Email</a>}
               <button onClick={() => setEditing(true)} style={{ background: "#1e293b", color: "#f59e0b", border: "1px solid #f59e0b40", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>✏️ Edit</button>
               {selected.website && <a href={"https://" + selected.website} target="_blank" rel="noreferrer" style={{ background: "#1e293b", color: "#94a3b8", borderRadius: 8, padding: "7px 14px", textDecoration: "none", fontSize: 12 }}>🌐 Site</a>}
               {selected.facebook && <a href={selected.facebook} target="_blank" rel="noreferrer" style={{ background: "#1e293b", color: "#3b82f6", borderRadius: 8, padding: "7px 14px", textDecoration: "none", fontSize: 12 }}>FB</a>}
@@ -570,7 +577,7 @@ Always end with {"action": "done", "summary": "..."}.`;
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, marginBottom: 16 }}>
-              {[["Revenue", selected.revenue || "Unknown", "#10b981"], ["Employees", selected.employees || "Unknown", "#3b82f6"], ["Last Contact", selected.lastContacted || "Never", "#94a3b8"], ["Apt Date", selected.aptDate || "None", "#f59e0b"]].map(([l, v, col]) => (
+              {[["Revenue", selected.revenue || "Unknown", "#10b981"], ["Employees", selected.employees || "Unknown", "#3b82f6"], ["Email", selected.email || "None", "#60a5fa"], ["Last Contact", selected.lastContacted || "Never", "#94a3b8"], ["Apt Date", selected.aptDate || "None", "#f59e0b"]].map(([l, v, col]) => (
                 <div key={l} style={{ background: "#111118", borderRadius: 8, padding: "10px 12px", border: "1px solid #1e293b" }}>
                   <div style={{ fontSize: 9, color: "#64748b", marginBottom: 3 }}>{l}</div>
                   <div style={{ fontSize: 12, color: col, fontWeight: 600 }}>{v}</div>
