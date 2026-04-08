@@ -57,6 +57,10 @@ export default function BlastBudCRM() {
   const [agentTask, setAgentTask] = useState("");
   const [agentLog, setAgentLog] = useState([]);
   const [agentRunning, setAgentRunning] = useState(false);
+  const [widgetPos, setWidgetPos] = useState({ x: null, y: null });
+  const [widgetOpen, setWidgetOpen] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const dragOffset = typeof window !== 'undefined' ? { current: { x: 0, y: 0 } } : { current: { x: 0, y: 0 } };
 
   useEffect(() => {
     setHydrated(true);
@@ -312,7 +316,7 @@ Always end with {"action": "done", "summary": "..."}.`;
           {states.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
         <button onClick={() => setShowStats(!showStats)} style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", color: "#94a3b8", fontSize: 12, cursor: "pointer" }}>📊</button>
-        <button onClick={() => setAgentView(!agentView)} style={{ background: agentView ? "#7c3aed" : "#1e293b", border: "1px solid " + (agentView ? "#7c3aed" : "#334155"), borderRadius: 6, padding: "6px 12px", color: agentView ? "#fff" : "#94a3b8", fontSize: 12, cursor: "pointer", fontWeight: agentView ? 700 : 400 }}>🤖 Agent</button>
+
         <span style={{ fontSize: 11, color: "#64748b" }}>{filtered.length} shown</span>
         {view === "detail" && <button onClick={() => setView("list")} style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", color: "#94a3b8", fontSize: 12, cursor: "pointer" }}>← List</button>}
       </div>
@@ -333,35 +337,6 @@ Always end with {"action": "done", "summary": "..."}.`;
         </div>
       )}
 
-      {agentView && (
-        <div style={{ background: "#0a0014", borderBottom: "1px solid #4c1d95", padding: 16, maxHeight: 400, display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ fontSize: 11, color: "#a78bfa", fontWeight: 700, letterSpacing: "0.05em" }}>🤖 CRM AGENT — powered by qwen2.5:72b</div>
-          <div style={{ flex: 1, overflowY: "auto", maxHeight: 280, display: "flex", flexDirection: "column", gap: 8 }}>
-            {agentLog.length === 0 && <div style={{ color: "#4c1d95", fontSize: 12 }}>Give the agent a task. It can search contacts, update statuses, book appointments, add notes, and more.</div>}
-            {agentLog.map((msg, i) => (
-              <div key={i} style={{ background: msg.role === "user" ? "#1e1b4b" : msg.role === "error" ? "#450a0a" : "#0f0f1a", border: "1px solid " + (msg.role === "user" ? "#4338ca" : msg.role === "error" ? "#7f1d1d" : "#1e293b"), borderRadius: 8, padding: "8px 12px" }}>
-                <div style={{ fontSize: 10, color: msg.role === "user" ? "#818cf8" : msg.role === "error" ? "#f87171" : "#6b7280", marginBottom: 4, fontWeight: 700 }}>{msg.role === "user" ? "YOU" : msg.role === "error" ? "ERROR" : "AGENT"}</div>
-                <div style={{ fontSize: 12, color: msg.role === "user" ? "#c7d2fe" : "#e2e8f0", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{msg.text}</div>
-                {msg.result && <div style={{ fontSize: 11, color: "#10b981", marginTop: 6, background: "#052e16", borderRadius: 4, padding: "4px 8px" }}>→ {msg.result}</div>}
-              </div>
-            ))}
-            {agentRunning && <div style={{ color: "#a78bfa", fontSize: 12, animation: "pulse 1s infinite" }}>⟳ Agent thinking...</div>}
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <input
-              value={agentTask}
-              onChange={e => setAgentTask(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && runAgent()}
-              placeholder='e.g. "Find all dispensaries in NY and mark them as contacted" or "Book an apt with Bayside Cannabis for April 15"'
-              style={{ flex: 1, background: "#1e1b4b", border: "1px solid #4c1d95", borderRadius: 8, padding: "8px 12px", color: "#e2e8f0", fontSize: 13, outline: "none", fontFamily: "monospace" }}
-            />
-            <button onClick={runAgent} disabled={agentRunning || !agentTask.trim()} style={{ background: agentRunning ? "#1e293b" : "#7c3aed", color: "#fff", border: "none", borderRadius: 8, padding: "8px 16px", fontSize: 13, cursor: agentRunning ? "default" : "pointer", fontWeight: 700 }}>
-              {agentRunning ? "..." : "Run"}
-            </button>
-            <button onClick={() => setAgentLog([])} style={{ background: "#1e293b", color: "#64748b", border: "1px solid #334155", borderRadius: 8, padding: "8px 12px", fontSize: 12, cursor: "pointer" }}>Clear</button>
-          </div>
-        </div>
-      )}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         {/* LIST */}
         {view !== "detail" && (
@@ -468,6 +443,155 @@ Always end with {"action": "done", "summary": "..."}.`;
           </div>
         )}
       </div>
+      {/* FLOATING BUD WIDGET */}
+      <div
+        style={{
+          position: "fixed",
+          left: widgetPos.x !== null ? widgetPos.x : "calc(100vw - 90px)",
+          top: widgetPos.y !== null ? widgetPos.y : "calc(100vh - 90px)",
+          zIndex: 9999,
+          userSelect: "none",
+        }}
+      >
+        {/* Draggable bud button */}
+        <div
+          onMouseDown={(e) => {
+            e.preventDefault();
+            const rect = e.currentTarget.parentElement.getBoundingClientRect();
+            dragOffset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+            setDragging(true);
+            const onMove = (ev) => {
+              setWidgetPos({ x: ev.clientX - dragOffset.current.x, y: ev.clientY - dragOffset.current.y });
+            };
+            const onUp = () => {
+              setDragging(false);
+              window.removeEventListener("mousemove", onMove);
+              window.removeEventListener("mouseup", onUp);
+            };
+            window.addEventListener("mousemove", onMove);
+            window.addEventListener("mouseup", onUp);
+          }}
+          onClick={() => !dragging && setWidgetOpen(!widgetOpen)}
+          style={{
+            width: 64, height: 64,
+            borderRadius: "50%",
+            background: "radial-gradient(circle at 35% 35%, #16a34a, #052e16)",
+            border: "3px solid " + (widgetOpen ? "#4ade80" : "#15803d"),
+            boxShadow: widgetOpen ? "0 0 24px #16a34a88, 0 4px 20px rgba(0,0,0,0.5)" : "0 4px 20px rgba(0,0,0,0.5)",
+            cursor: dragging ? "grabbing" : "grab",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: 32,
+            transition: "box-shadow 0.2s, border-color 0.2s",
+            flexShrink: 0,
+          }}
+          title="BlastBud Agent"
+        >
+          <svg viewBox="0 0 64 64" width="42" height="42" xmlns="http://www.w3.org/2000/svg">
+            {/* Cannabis leaf SVG */}
+            <g transform="translate(32,38)">
+              {/* stem */}
+              <line x1="0" y1="0" x2="0" y2="14" stroke="#15803d" strokeWidth="2.5" strokeLinecap="round"/>
+              {/* center leaf */}
+              <path d="M0,0 C-2,-8 -8,-18 0,-28 C8,-18 2,-8 0,0Z" fill="#16a34a"/>
+              {/* left leaf */}
+              <path d="M0,-8 C-6,-10 -18,-10 -20,-4 C-12,-2 -4,-4 0,-8Z" fill="#22c55e"/>
+              {/* right leaf */}
+              <path d="M0,-8 C6,-10 18,-10 20,-4 C12,-2 4,-4 0,-8Z" fill="#22c55e"/>
+              {/* upper left */}
+              <path d="M-1,-14 C-6,-14 -15,-10 -14,-4 C-8,-4 -3,-8 -1,-14Z" fill="#4ade80"/>
+              {/* upper right */}
+              <path d="M1,-14 C6,-14 15,-10 14,-4 C8,-4 3,-8 1,-14Z" fill="#4ade80"/>
+              {/* tip */}
+              <path d="M0,-26 C-3,-22 -2,-16 0,-14 C2,-16 3,-22 0,-26Z" fill="#86efac"/>
+            </g>
+            {/* pulse ring when running */}
+            {agentRunning && <circle cx="32" cy="32" r="30" fill="none" stroke="#4ade80" strokeWidth="2" opacity="0.6"/>}
+          </svg>
+        </div>
+
+        {/* Agent chat panel */}
+        {widgetOpen && (
+          <div style={{
+            position: "absolute",
+            bottom: 74,
+            right: 0,
+            width: 380,
+            maxHeight: 500,
+            background: "#07020f",
+            border: "1px solid #16a34a",
+            borderRadius: 14,
+            boxShadow: "0 8px 40px rgba(0,0,0,0.8), 0 0 30px #16a34a22",
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}>
+            {/* Header */}
+            <div style={{ background: "linear-gradient(135deg, #052e16, #0a4a20)", padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #16a34a44" }}>
+              <div>
+                <div style={{ fontSize: 12, color: "#4ade80", fontWeight: 700, letterSpacing: "0.05em" }}>🌿 BLASTBUD AGENT</div>
+                <div style={{ fontSize: 9, color: "#15803d" }}>qwen2.5:72b · localhost:11434</div>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => setAgentLog([])} style={{ background: "none", border: "1px solid #15803d", borderRadius: 4, padding: "2px 8px", color: "#4ade80", fontSize: 10, cursor: "pointer" }}>Clear</button>
+                <button onClick={() => setWidgetOpen(false)} style={{ background: "none", border: "1px solid #15803d", borderRadius: 4, padding: "2px 8px", color: "#4ade80", fontSize: 10, cursor: "pointer" }}>✕</button>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div style={{ flex: 1, overflowY: "auto", padding: 12, display: "flex", flexDirection: "column", gap: 8, maxHeight: 340 }}>
+              {agentLog.length === 0 && (
+                <div style={{ color: "#15803d", fontSize: 12, lineHeight: 1.6, textAlign: "center", padding: "20px 10px" }}>
+                  🌿 I can search contacts, update statuses, book appointments, add notes, and more.<br/><br/>
+                  <span style={{ color: "#4ade80", fontSize: 11 }}>Try: "Find all dispensaries in NY" or "Book Bayside Cannabis for April 15 @ 2pm"</span>
+                </div>
+              )}
+              {agentLog.map((msg, i) => (
+                <div key={i} style={{
+                  background: msg.role === "user" ? "#052e16" : msg.role === "error" ? "#2d0000" : "#0d0d0d",
+                  border: "1px solid " + (msg.role === "user" ? "#16a34a" : msg.role === "error" ? "#7f1d1d" : "#1a1a1a"),
+                  borderRadius: 8, padding: "7px 10px",
+                  alignSelf: msg.role === "user" ? "flex-end" : "flex-start",
+                  maxWidth: "90%",
+                }}>
+                  <div style={{ fontSize: 9, color: msg.role === "user" ? "#4ade80" : msg.role === "error" ? "#f87171" : "#374151", marginBottom: 3, fontWeight: 700 }}>
+                    {msg.role === "user" ? "YOU" : msg.role === "error" ? "ERROR" : "AGENT"}
+                  </div>
+                  <div style={{ fontSize: 11, color: msg.role === "user" ? "#dcfce7" : "#d1d5db", whiteSpace: "pre-wrap", lineHeight: 1.5 }}>{msg.text}</div>
+                  {msg.result && (
+                    <div style={{ fontSize: 10, color: "#4ade80", marginTop: 5, background: "#052e16", borderRadius: 4, padding: "3px 7px", borderLeft: "2px solid #16a34a" }}>
+                      → {msg.result}
+                    </div>
+                  )}
+                </div>
+              ))}
+              {agentRunning && (
+                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#4ade80", fontSize: 11 }}>
+                  <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⟳</span> Thinking...
+                </div>
+              )}
+            </div>
+
+            {/* Input */}
+            <div style={{ padding: "10px 12px", borderTop: "1px solid #16a34a22", display: "flex", gap: 8 }}>
+              <input
+                value={agentTask}
+                onChange={e => setAgentTask(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && runAgent()}
+                placeholder="Give me a task..."
+                style={{ flex: 1, background: "#0d0d0d", border: "1px solid #16a34a44", borderRadius: 8, padding: "7px 10px", color: "#e2e8f0", fontSize: 12, outline: "none", fontFamily: "monospace" }}
+              />
+              <button
+                onClick={runAgent}
+                disabled={agentRunning || !agentTask.trim()}
+                style={{ background: agentRunning ? "#052e16" : "#16a34a", color: "#fff", border: "none", borderRadius: 8, padding: "7px 14px", fontSize: 12, cursor: agentRunning ? "default" : "pointer", fontWeight: 700 }}
+              >
+                {agentRunning ? "..." : "↑"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
+
