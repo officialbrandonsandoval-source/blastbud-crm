@@ -27,22 +27,9 @@ function getPriorityScore(c) {
 }
 
 export default function BlastBudCRM() {
-  const [contacts, setContacts] = useState(() => {
-    if (typeof window === 'undefined') return CONTACTS_DATA.map(c => ({ ...c }));
-    try {
-      const saved = localStorage.getItem('blastbud_contacts_v2');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.length === CONTACTS_DATA.length) return parsed;
-        // Merge: keep saved data, fill in any new contacts
-        const savedMap = {};
-        parsed.forEach(c => { savedMap[c.id] = c; });
-        return CONTACTS_DATA.map(c => savedMap[c.id] ? savedMap[c.id] : { ...c });
-      }
-    } catch {}
-    return CONTACTS_DATA.map(c => ({ ...c }));
-  });
-  const [hydrated, setHydrated] = useState(true);
+  const [contacts, setContacts] = useState(CONTACTS_DATA.map(c => ({ ...c })));
+  const [hydrated, setHydrated] = useState(false);
+  const [dbReady, setDbReady] = useState(false);
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -63,12 +50,89 @@ export default function BlastBudCRM() {
   const dragOffset = typeof window !== 'undefined' ? { current: { x: 0, y: 0 } } : { current: { x: 0, y: 0 } };
 
   useEffect(() => {
-    setHydrated(true);
+    const loadFromDB = async () => {
+      try {
+        // First seed if needed, then load
+        const res = await fetch('/api/contacts');
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          // Map DB columns back to camelCase
+          const mapped = data.map(r => ({
+            id: r.id,
+            company: r.company || '',
+            parentCompany: r.parent_company || '',
+            firstName: r.first_name || '',
+            lastName: r.last_name || '',
+            title: r.title || '',
+            phone: r.phone || '',
+            website: r.website || '',
+            city: r.city || '',
+            state: r.state || '',
+            description: r.description || '',
+            notes: r.notes || '',
+            revenue: r.revenue || '',
+            employees: r.employees || '',
+            facebook: r.facebook || '',
+            linkedin: r.linkedin || '',
+            businessType: r.business_type || '',
+            status: r.status || 'new',
+            callNotes: r.call_notes || '',
+            lastContacted: r.last_contacted || '',
+            aptDate: r.apt_date || '',
+          }));
+          // If DB has fewer than 250, seed first
+          if (data.length < 250) {
+            await fetch('/api/contacts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'seed' }) });
+            // Reload after seed
+            const res2 = await fetch('/api/contacts');
+            const data2 = await res2.json();
+            if (Array.isArray(data2) && data2.length > 0) {
+              const mapped2 = data2.map(r => ({
+                id: r.id, company: r.company || '', parentCompany: r.parent_company || '',
+                firstName: r.first_name || '', lastName: r.last_name || '', title: r.title || '',
+                phone: r.phone || '', website: r.website || '', city: r.city || '', state: r.state || '',
+                description: r.description || '', notes: r.notes || '', revenue: r.revenue || '',
+                employees: r.employees || '', facebook: r.facebook || '', linkedin: r.linkedin || '',
+                businessType: r.business_type || '', status: r.status || 'new',
+                callNotes: r.call_notes || '', lastContacted: r.last_contacted || '', aptDate: r.apt_date || '',
+              }));
+              setContacts(mapped2);
+            }
+          } else {
+            setContacts(mapped);
+          }
+          setDbReady(true);
+        } else {
+          // Seed DB from scratch
+          await fetch('/api/contacts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'seed' }) });
+          setDbReady(true);
+        }
+      } catch (e) {
+        // Fallback to localStorage
+        try {
+          const saved = localStorage.getItem('blastbud_contacts_v2');
+          if (saved) setContacts(JSON.parse(saved));
+        } catch {}
+      }
+      setHydrated(true);
+    };
+    loadFromDB();
   }, []);
 
   const saveContacts = useCallback((updated) => {
     setContacts(updated);
+    // Also save to localStorage as backup
     try { localStorage.setItem("blastbud_contacts_v2", JSON.stringify(updated)); } catch {}
+  }, []);
+
+  const persistContact = useCallback(async (id, changes) => {
+    try {
+      await fetch('/api/contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'update', id, ...changes })
+      });
+    } catch (e) { console.error('DB save failed:', e); }
   }, []);
 
   const states = useMemo(() => [...new Set(contacts.map(c => c.state))].filter(Boolean).sort(), [contacts]);
@@ -103,10 +167,12 @@ export default function BlastBudCRM() {
 
   const updateStatus = (id, status) => {
     const now = new Date().toLocaleDateString();
+    const lastContacted = status === "contacted" ? now : contacts.find(c => c.id === id)?.lastContacted || '';
     const updated = contacts.map(c =>
-      c.id === id ? { ...c, status, lastContacted: status === "contacted" ? now : c.lastContacted } : c
+      c.id === id ? { ...c, status, lastContacted } : c
     );
     saveContacts(updated);
+    persistContact(id, { status, lastContacted });
     if (selected && selected.id === id) setSelected(updated.find(c => c.id === id));
   };
 
@@ -115,6 +181,7 @@ export default function BlastBudCRM() {
       c.id === id ? { ...c, callNotes: notesText, aptDate: aptDateText } : c
     );
     saveContacts(updated);
+    persistContact(id, { callNotes: notesText, aptDate: aptDateText });
     setSelected(updated.find(c => c.id === id));
   };
 
