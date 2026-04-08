@@ -1,7 +1,7 @@
 import CONTACTS_DATA from '../../contacts.json';
 
-const SUPABASE_URL = process.env.SUPABASE_URL || 'https://kmrywngatkxmwfghbazf.supabase.co';
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || '';
+const SUPABASE_URL = 'https://kmrywngatkxmwfghbazf.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imttcnl3bmdhdGt4bXdmZ2hiYXpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU2Njk3NDcsImV4cCI6MjA5MTI0NTc0N30.8BuC9RdvNuekTTDyyNdotoZJJU0DozhHul516R0JU5I';
 
 async function sb(path, opts = {}) {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
@@ -38,23 +38,44 @@ export async function POST(request) {
       if (callNotes !== undefined) updates.call_notes = callNotes;
       if (aptDate !== undefined) updates.apt_date = aptDate;
       if (lastContacted !== undefined) updates.last_contacted = lastContacted;
-      await sb(`contacts?id=eq.${id}`, { method: 'PATCH', body: JSON.stringify(updates), headers: { 'Prefer': 'return=minimal' } });
+      await sb(`contacts?id=eq.${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+        headers: { 'Prefer': 'return=minimal' }
+      });
       return Response.json({ ok: true });
     }
 
     if (action === 'seed') {
       const rows = CONTACTS_DATA.map(c => ({
-        id: c.id, company: c.company || '', parent_company: c.parentCompany || '',
-        first_name: c.firstName || '', last_name: c.lastName || '', title: c.title || '',
-        phone: c.phone || '', website: c.website || '', city: c.city || '', state: c.state || '',
-        description: (c.description || '').slice(0, 800), notes: c.notes || '',
-        revenue: c.revenue || '', employees: c.employees || '',
-        facebook: c.facebook || '', linkedin: c.linkedin || '',
+        id: c.id,
+        company: c.company || '',
+        parent_company: c.parentCompany || '',
+        first_name: c.firstName || '',
+        last_name: c.lastName || '',
+        title: c.title || '',
+        phone: c.phone || '',
+        website: c.website || '',
+        city: c.city || '',
+        state: c.state || '',
+        description: (c.description || '').slice(0, 800),
+        notes: c.notes || '',
+        revenue: c.revenue || '',
+        employees: c.employees || '',
+        facebook: c.facebook || '',
+        linkedin: c.linkedin || '',
         business_type: c.businessType || '',
-        status: 'new', call_notes: '', last_contacted: '', apt_date: ''
+        status: 'new',
+        call_notes: '',
+        last_contacted: '',
+        apt_date: ''
       }));
       for (let i = 0; i < rows.length; i += 50) {
-        await sb('contacts', { method: 'POST', body: JSON.stringify(rows.slice(i, i + 50)), headers: { 'Prefer': 'resolution=ignore-duplicates,return=minimal' } });
+        await sb('contacts', {
+          method: 'POST',
+          body: JSON.stringify(rows.slice(i, i + 50)),
+          headers: { 'Prefer': 'resolution=ignore-duplicates,return=minimal' }
+        });
       }
       return Response.json({ ok: true, seeded: rows.length });
     }
