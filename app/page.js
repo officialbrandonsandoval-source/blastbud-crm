@@ -180,6 +180,7 @@ export default function BlastBudCRM() {
             aptDate: r.apt_date || '',
           }));
           // Data loaded from DB — no re-seeding, your changes persist
+          setContacts(mapped);
           setDbReady(true);
         } else {
           // Seed DB from scratch
