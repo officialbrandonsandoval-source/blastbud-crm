@@ -123,14 +123,10 @@ Output exactly 3 items:
 
 Be direct, specific, no fluff. Sound like a seasoned sales pro.`;
 
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const res = await fetch("/api/brief", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 500,
-          messages: [{ role: "user", content: prompt }],
-        }),
+        body: JSON.stringify({ prompt }),
       });
       const data = await res.json();
       const text = data.content ? data.content.map(b => b.text || "").join("") : "Error generating brief.";
