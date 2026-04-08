@@ -309,10 +309,11 @@ Output exactly 3 items:
 
 Be direct, specific, no fluff. Sound like a seasoned sales pro.`;
 
-      const res = await fetch("http://localhost:11434/api/generate", {
+      const res = await fetch("/api/ollama", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          _endpoint: "/api/generate",
           model: "qwen2.5:72b",
           prompt: prompt,
           stream: false
@@ -360,10 +361,11 @@ Always end with {"action": "done", "summary": "..."}.`;
     const maxIterations = 10;
 
     const ollama = async (msgs) => {
-      const res = await fetch("http://localhost:11434/api/chat", {
+      const res = await fetch("/api/ollama", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          _endpoint: "/api/chat",
           model: "qwen2.5:72b",
           messages: [{ role: "system", content: systemPrompt }, ...msgs],
           stream: false
@@ -703,7 +705,7 @@ Always end with {"action": "done", "summary": "..."}.`;
             <div style={{ background: "linear-gradient(135deg, #052e16, #0a4a20)", padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #16a34a44" }}>
               <div>
                 <div style={{ fontSize: 12, color: "#4ade80", fontWeight: 700, letterSpacing: "0.05em" }}>🌿 BLASTBUD AGENT</div>
-                <div style={{ fontSize: 9, color: "#15803d" }}>qwen2.5:72b · localhost:11434</div>
+                <div style={{ fontSize: 9, color: "#15803d" }}>qwen2.5:72b · server proxy</div>
               </div>
               <div style={{ display: "flex", gap: 6 }}>
                 <button onClick={() => setAgentLog([])} style={{ background: "none", border: "1px solid #15803d", borderRadius: 4, padding: "2px 8px", color: "#4ade80", fontSize: 10, cursor: "pointer" }}>Clear</button>
