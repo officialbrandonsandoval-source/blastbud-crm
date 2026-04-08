@@ -123,13 +123,17 @@ Output exactly 3 items:
 
 Be direct, specific, no fluff. Sound like a seasoned sales pro.`;
 
-      const res = await fetch("/api/brief", {
+      const res = await fetch("http://localhost:11434/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({
+          model: "qwen2.5:72b",
+          prompt: prompt,
+          stream: false
+        }),
       });
       const data = await res.json();
-      const text = data.content ? data.content.map(b => b.text || "").join("") : "Error generating brief.";
+      const text = data.response || "Error generating brief.";
       setAiBrief(text);
     } catch (e) {
       setAiBrief("Failed to generate brief.");
