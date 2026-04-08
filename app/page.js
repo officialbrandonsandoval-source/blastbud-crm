@@ -27,8 +27,22 @@ function getPriorityScore(c) {
 }
 
 export default function BlastBudCRM() {
-  const [contacts, setContacts] = useState(CONTACTS_DATA.map(c => ({ ...c })));
-  const [hydrated, setHydrated] = useState(false);
+  const [contacts, setContacts] = useState(() => {
+    if (typeof window === 'undefined') return CONTACTS_DATA.map(c => ({ ...c }));
+    try {
+      const saved = localStorage.getItem('blastbud_contacts_v2');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.length === CONTACTS_DATA.length) return parsed;
+        // Merge: keep saved data, fill in any new contacts
+        const savedMap = {};
+        parsed.forEach(c => { savedMap[c.id] = c; });
+        return CONTACTS_DATA.map(c => savedMap[c.id] ? savedMap[c.id] : { ...c });
+      }
+    } catch {}
+    return CONTACTS_DATA.map(c => ({ ...c }));
+  });
+  const [hydrated, setHydrated] = useState(true);
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -45,10 +59,6 @@ export default function BlastBudCRM() {
   const [agentRunning, setAgentRunning] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("blastbud_contacts_v2");
-      if (saved) setContacts(JSON.parse(saved));
-    } catch {}
     setHydrated(true);
   }, []);
 
