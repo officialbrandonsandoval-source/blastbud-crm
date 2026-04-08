@@ -26,6 +26,98 @@ function getPriorityScore(c) {
   return score;
 }
 
+// ─── Edit Contact Form ─────────────────────────────────────────────
+function EditContactForm({ contact, onSave, onCancel }) {
+  const [form, setForm] = useState({ ...contact });
+  const [saving, setSaving] = useState(false);
+  const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
+
+  const handleSave = () => { setSaving(true); onSave(form); setSaving(false); };
+
+  const fieldStyle = { width: "100%", background: "#0d0d0d", border: "1px solid #1e293b", borderRadius: 6, padding: "8px 10px", color: "#e2e8f0", fontSize: 12, fontFamily: "monospace", outline: "none", boxSizing: "border-box" };
+  const labelStyle = { fontSize: 9, color: "#64748b", marginBottom: 3, textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 };
+  const groupStyle = { display: "flex", flexDirection: "column", gap: 3 };
+
+  return (
+    <div style={{ background: "#0d1117", border: "1px solid #1e293b", borderRadius: 10, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ fontSize: 13, color: "#f59e0b", fontWeight: 700 }}>✏️ EDIT CONTACT</div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={onCancel} style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 6, padding: "5px 14px", color: "#94a3b8", fontSize: 12, cursor: "pointer" }}>Cancel</button>
+          <button onClick={handleSave} disabled={saving} style={{ background: saving ? "#064e3b" : "#10b981", border: "none", borderRadius: 6, padding: "5px 14px", color: "#fff", fontSize: 12, fontWeight: 700, cursor: saving ? "default" : "pointer" }}>{saving ? "Saving..." : "💾 Save"}</button>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={groupStyle}><div style={labelStyle}>Company</div><input value={form.company} onChange={e => set("company", e.target.value)} style={fieldStyle} /></div>
+        <div style={groupStyle}><div style={labelStyle}>Parent Company</div><input value={form.parentCompany} onChange={e => set("parentCompany", e.target.value)} style={fieldStyle} /></div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+        <div style={groupStyle}><div style={labelStyle}>First Name</div><input value={form.firstName} onChange={e => set("firstName", e.target.value)} style={fieldStyle} /></div>
+        <div style={groupStyle}><div style={labelStyle}>Last Name</div><input value={form.lastName} onChange={e => set("lastName", e.target.value)} style={fieldStyle} /></div>
+        <div style={groupStyle}><div style={labelStyle}>Title</div><input value={form.title} onChange={e => set("title", e.target.value)} style={fieldStyle} /></div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={groupStyle}><div style={labelStyle}>Phone</div><input value={form.phone} onChange={e => set("phone", e.target.value)} style={fieldStyle} /></div>
+        <div style={groupStyle}><div style={labelStyle}>Website</div><input value={form.website} onChange={e => set("website", e.target.value)} style={fieldStyle} /></div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+        <div style={groupStyle}><div style={labelStyle}>City</div><input value={form.city} onChange={e => set("city", e.target.value)} style={fieldStyle} /></div>
+        <div style={groupStyle}><div style={labelStyle}>State</div><input value={form.state} onChange={e => set("state", e.target.value)} style={fieldStyle} maxLength={2} /></div>
+        <div style={groupStyle}><div style={labelStyle}>Business Type</div><input value={form.businessType} onChange={e => set("businessType", e.target.value)} style={fieldStyle} /></div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={groupStyle}><div style={labelStyle}>Revenue</div>
+          <select value={form.revenue} onChange={e => set("revenue", e.target.value)} style={{ ...fieldStyle, cursor: "pointer" }}>
+            <option value="">Unknown</option>
+            <option value="Less Than $500,000">Less Than $500,000</option>
+            <option value="$500,000-1 Million">$500,000-1 Million</option>
+            <option value="$1-2.5 Million">$1-2.5 Million</option>
+            <option value="$2.5-5 Million">$2.5-5 Million</option>
+            <option value="$5-10 Million">$5-10 Million</option>
+            <option value="$10-20 Million">$10-20 Million</option>
+            <option value="$20-50 Million">$20-50 Million</option>
+          </select>
+        </div>
+        <div style={groupStyle}><div style={labelStyle}>Employees</div>
+          <select value={form.employees} onChange={e => set("employees", e.target.value)} style={{ ...fieldStyle, cursor: "pointer" }}>
+            <option value="">Unknown</option>
+            <option value="1 to 4">1 to 4</option>
+            <option value="5 to 9">5 to 9</option>
+            <option value="10 to 19">10 to 19</option>
+            <option value="20 to 49">20 to 49</option>
+            <option value="50 to 99">50 to 99</option>
+            <option value="100 to 249">100 to 249</option>
+            <option value="250 to 499">250 to 499</option>
+            <option value="500+">500+</option>
+          </select>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div style={groupStyle}><div style={labelStyle}>Facebook URL</div><input value={form.facebook} onChange={e => set("facebook", e.target.value)} style={fieldStyle} placeholder="https://facebook.com/..." /></div>
+        <div style={groupStyle}><div style={labelStyle}>LinkedIn URL</div><input value={form.linkedin} onChange={e => set("linkedin", e.target.value)} style={fieldStyle} placeholder="https://linkedin.com/..." /></div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+        <div style={groupStyle}><div style={labelStyle}>Status</div>
+          <select value={form.status} onChange={e => set("status", e.target.value)} style={{ ...fieldStyle, cursor: "pointer" }}>
+            {Object.entries(STATUS_CONFIG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+          </select>
+        </div>
+        <div style={groupStyle}><div style={labelStyle}>Last Contacted</div><input value={form.lastContacted} onChange={e => set("lastContacted", e.target.value)} style={fieldStyle} placeholder="MM/DD/YYYY" /></div>
+        <div style={groupStyle}><div style={labelStyle}>Apt Date</div><input value={form.aptDate} onChange={e => set("aptDate", e.target.value)} style={fieldStyle} placeholder="MM/DD/YYYY" /></div>
+      </div>
+
+      <div style={groupStyle}><div style={labelStyle}>Notes</div><textarea value={form.notes} onChange={e => set("notes", e.target.value)} rows={2} style={{ ...fieldStyle, resize: "vertical" }} /></div>
+      <div style={groupStyle}><div style={labelStyle}>Description</div><textarea value={form.description} onChange={e => set("description", e.target.value)} rows={3} style={{ ...fieldStyle, resize: "vertical" }} /></div>
+      <div style={groupStyle}><div style={labelStyle}>Call Notes</div><textarea value={form.callNotes} onChange={e => set("callNotes", e.target.value)} rows={3} style={{ ...fieldStyle, resize: "vertical" }} /></div>
+    </div>
+  );
+}
+
 export default function BlastBudCRM() {
   const [contacts, setContacts] = useState(CONTACTS_DATA.map(c => ({ ...c })));
   const [hydrated, setHydrated] = useState(false);
@@ -47,6 +139,7 @@ export default function BlastBudCRM() {
   const [widgetPos, setWidgetPos] = useState({ x: null, y: null });
   const [widgetOpen, setWidgetOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
+  const [editing, setEditing] = useState(false);
   const dragOffset = typeof window !== 'undefined' ? { current: { x: 0, y: 0 } } : { current: { x: 0, y: 0 } };
 
   useEffect(() => {
@@ -190,7 +283,29 @@ export default function BlastBudCRM() {
     setNotesText(c.callNotes || "");
     setAptDateText(c.aptDate || "");
     setAiBrief("");
+    setEditing(false);
     setView("detail");
+  };
+
+  const handleEditSave = (updated) => {
+    const dbFields = {
+      company: updated.company, parent_company: updated.parentCompany,
+      first_name: updated.firstName, last_name: updated.lastName,
+      title: updated.title, phone: updated.phone, website: updated.website,
+      city: updated.city, state: updated.state, description: updated.description,
+      notes: updated.notes, revenue: updated.revenue, employees: updated.employees,
+      facebook: updated.facebook, linkedin: updated.linkedin,
+      business_type: updated.businessType, status: updated.status,
+      call_notes: updated.callNotes, last_contacted: updated.lastContacted,
+      apt_date: updated.aptDate,
+    };
+    const updatedList = contacts.map(c => c.id === updated.id ? updated : c);
+    saveContacts(updatedList);
+    persistContact(updated.id, dbFields);
+    setSelected(updated);
+    setNotesText(updated.callNotes || "");
+    setAptDateText(updated.aptDate || "");
+    setEditing(false);
   };
 
   const generateBrief = async (contact) => {
@@ -385,7 +500,7 @@ Always end with {"action": "done", "summary": "..."}.`;
         <button onClick={() => setShowStats(!showStats)} style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", color: "#94a3b8", fontSize: 12, cursor: "pointer" }}>📊</button>
 
         <span style={{ fontSize: 11, color: "#64748b" }}>{filtered.length} shown</span>
-        {view === "detail" && <button onClick={() => setView("list")} style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", color: "#94a3b8", fontSize: 12, cursor: "pointer" }}>← List</button>}
+        {view === "detail" && <button onClick={() => { setView("list"); setEditing(false); }} style={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 6, padding: "6px 12px", color: "#94a3b8", fontSize: 12, cursor: "pointer" }}>← List</button>}
       </div>
 
       {/* STATS */}
@@ -437,6 +552,9 @@ Always end with {"action": "done", "summary": "..."}.`;
         {/* DETAIL */}
         {view === "detail" && selected && (
           <div style={{ flex: 1, overflowY: "auto", padding: 20, background: "#0d1117", maxHeight: "calc(100vh - 65px)" }}>
+            {editing ? (
+              <EditContactForm contact={selected} onSave={handleEditSave} onCancel={() => setEditing(false)} />
+            ) : (<>
             <div style={{ marginBottom: 16 }}>
               <h2 style={{ margin: 0, fontSize: 19, color: "#f1f5f9" }}>{selected.company}</h2>
               {contactName(selected) && <div style={{ fontSize: 13, color: "#94a3b8", marginTop: 3 }}>{contactName(selected)} · {selected.title}</div>}
@@ -445,6 +563,7 @@ Always end with {"action": "done", "summary": "..."}.`;
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
               {selected.phone && <a href={"tel:" + selected.phone} style={{ background: "#10b981", color: "#fff", borderRadius: 8, padding: "7px 14px", textDecoration: "none", fontSize: 13, fontWeight: 600 }}>📞 Call Now</a>}
+              <button onClick={() => setEditing(true)} style={{ background: "#1e293b", color: "#f59e0b", border: "1px solid #f59e0b40", borderRadius: 8, padding: "7px 14px", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>✏️ Edit</button>
               {selected.website && <a href={"https://" + selected.website} target="_blank" rel="noreferrer" style={{ background: "#1e293b", color: "#94a3b8", borderRadius: 8, padding: "7px 14px", textDecoration: "none", fontSize: 12 }}>🌐 Site</a>}
               {selected.facebook && <a href={selected.facebook} target="_blank" rel="noreferrer" style={{ background: "#1e293b", color: "#3b82f6", borderRadius: 8, padding: "7px 14px", textDecoration: "none", fontSize: 12 }}>FB</a>}
               {selected.linkedin && <a href={selected.linkedin} target="_blank" rel="noreferrer" style={{ background: "#1e293b", color: "#60a5fa", borderRadius: 8, padding: "7px 14px", textDecoration: "none", fontSize: 12 }}>LI</a>}
@@ -507,6 +626,7 @@ Always end with {"action": "done", "summary": "..."}.`;
             <button onClick={() => saveNotes(selected.id)} style={{ background: "#10b981", color: "#fff", border: "none", borderRadius: 8, padding: "10px 24px", fontSize: 14, cursor: "pointer", fontWeight: 700 }}>
               Save
             </button>
+            </>)}
           </div>
         )}
       </div>

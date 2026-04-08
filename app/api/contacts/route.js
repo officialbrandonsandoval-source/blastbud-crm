@@ -32,12 +32,23 @@ export async function POST(request) {
     const { action } = body;
 
     if (action === 'update') {
-      const { id, status, callNotes, aptDate, lastContacted } = body;
+      const { id, ...fields } = body;
+      delete fields.action;
       const updates = { updated_at: new Date().toISOString() };
-      if (status !== undefined) updates.status = status;
-      if (callNotes !== undefined) updates.call_notes = callNotes;
-      if (aptDate !== undefined) updates.apt_date = aptDate;
-      if (lastContacted !== undefined) updates.last_contacted = lastContacted;
+      const allowedFields = [
+        'company', 'parent_company', 'first_name', 'last_name', 'title',
+        'phone', 'website', 'city', 'state', 'description', 'notes',
+        'revenue', 'employees', 'facebook', 'linkedin', 'business_type',
+        'status', 'call_notes', 'last_contacted', 'apt_date'
+      ];
+      // Also accept camelCase versions for backward compat
+      if (fields.callNotes !== undefined) updates.call_notes = fields.callNotes;
+      if (fields.aptDate !== undefined) updates.apt_date = fields.aptDate;
+      if (fields.lastContacted !== undefined) updates.last_contacted = fields.lastContacted;
+      // Accept snake_case fields directly
+      for (const key of allowedFields) {
+        if (fields[key] !== undefined) updates[key] = fields[key];
+      }
       await sb(`contacts?id=eq.${id}`, {
         method: 'PATCH',
         body: JSON.stringify(updates),
